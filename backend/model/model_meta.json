@@ -1,0 +1,47 @@
+{
+  "features": [
+    "make_enc",
+    "model_enc",
+    "year",
+    "car_age",
+    "mileage",
+    "is_colombo"
+  ],
+  "mae_lkr": 464340,
+  "r2_score": 0.9548,
+  "makes": [
+    "honda",
+    "hyundai",
+    "mitsubishi",
+    "nissan",
+    "perodua",
+    "suzuki",
+    "toyota"
+  ],
+  "models": [
+    "allion",
+    "alto",
+    "axia",
+    "axio",
+    "bezza",
+    "camry",
+    "corolla",
+    "crv",
+    "elantra",
+    "fit",
+    "grace",
+    "hilux",
+    "lancer",
+    "march",
+    "premio",
+    "prius",
+    "rav4",
+    "sunny",
+    "swift",
+    "vezel",
+    "vit",
+    "wagonr",
+    "xtrail"
+  ],
+  "trained_on": "2026-06-06"
+}
