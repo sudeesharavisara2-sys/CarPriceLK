@@ -216,25 +216,40 @@
     <script>
         const API_BASE = "http://127.0.0.1:5000";
 
-        // 🔍 Auto-Suggestion Logic dynamically querying the updated app.py database route
         const makeInput = document.getElementById('make');
+        const vehicleTypeInput = document.getElementById('vehicle_type');
         const modelInput = document.getElementById('model_name');
         const datalist = document.getElementById('suggestions_list');
 
+        // 💡 Smart UX Feature: Auto-select Vehicle Category based on common Brand selection
+        makeInput.addEventListener('change', function() {
+            const selectedMake = this.value;
+            modelInput.value = '';
+            datalist.innerHTML = '';
+            
+            if (["Bajaj", "Hero", "TVS", "Yamaha"].includes(selectedMake)) {
+                vehicleTypeInput.value = "Motorcycle";
+            } else if (["Ashok Leyland"].includes(selectedMake)) {
+                vehicleTypeInput.value = "Bus";
+            } else if (["Tata", "Mahindra", "Isuzu"].includes(selectedMake)) {
+                vehicleTypeInput.value = "Lorry";
+            } else if (["Toyota", "Nissan", "Suzuki", "Honda", "Hyundai"].includes(selectedMake)) {
+                vehicleTypeInput.value = "Car"; // Default to Car for multipurpose brands
+            }
+        });
+
+        // 🔍 Auto-Suggestion Logic dynamically querying the updated app.py database route
         modelInput.addEventListener('input', async function() {
             const selectedMake = makeInput.value;
             const currentQuery = this.value.trim();
 
-            // Brand එක තෝරාගෙන ඇති විට සහ අවම වශයෙන් අකුරු 1ක් වත් ටයිප් කර ඇති විට SQL Query එක යවයි
             if (selectedMake && currentQuery.length >= 1) {
                 try {
                     const response = await fetch(`${API_BASE}/get_suggestions?make=${encodeURIComponent(selectedMake)}&query=${encodeURIComponent(currentQuery)}`);
                     const suggestions = await response.json();
                     
-                    // පරණ Suggestions ලිස්ට් එක හිස් කිරීම
                     datalist.innerHTML = '';
                     
-                    // ලැබුණු නව ලැයිස්තුව ලූප් එකක් මඟින් datalist එකට එකතු කිරීම
                     suggestions.forEach(model => {
                         const option = document.createElement('option');
                         option.value = model;
@@ -244,12 +259,6 @@
                     console.error("Failed to sync database live model suggestions payload:", err);
                 }
             }
-        });
-
-        // Brand එක මාරු කලහොත් කලින් තිබූ Suggestions සහ ටයිප් කල Model එක හිස් කරයි
-        makeInput.addEventListener('change', function() {
-            modelInput.value = '';
-            datalist.innerHTML = '';
         });
 
         async function fetchModelMetadata() {
@@ -282,9 +291,9 @@
             content.classList.add('hidden');
 
             const payload = {
-                make: document.getElementById('make').value, 
-                model_name: document.getElementById('model_name').value.trim(),
-                vehicle_type: document.getElementById('vehicle_type').value,
+                make: makeInput.value, 
+                model_name: modelInput.value.trim(),
+                vehicle_type: vehicleTypeInput.value,
                 year: parseInt(document.getElementById('year').value),
                 mileage: parseInt(document.getElementById('mileage').value),
                 fuel_type: document.getElementById('fuel_type').value,
@@ -307,11 +316,14 @@
                     return;
                 }
 
-                document.getElementById('resVehicleType').innerText = data.vehicle_type || "VEHICLE";
+                // Title-case vehicle type display fix
+                document.getElementById('resVehicleType').innerText = data.vehicle_type ? data.vehicle_type.toUpperCase() : "VEHICLE";
                 document.getElementById('resTitle').innerText = `${data.make} ${data.model} (${data.year})`;
                 
                 const displayKm = data.mileage_km ? data.mileage_km.toLocaleString() : payload.mileage.toLocaleString();
-                document.getElementById('resSub').innerText = `${displayKm} km  |  data.fuel_type  |  ${data.transmission}`;
+                
+                // ✅ FIX: Fixed string literal issue to dynamically render the fuel type object value
+                document.getElementById('resSub').innerText = `${displayKm} km  |  ${data.fuel_type.toUpperCase()}  |  ${data.transmission.toUpperCase()}`;
                 
                 document.getElementById('resPrice').innerText = data.predicted_price.toLocaleString();
                 document.getElementById('resLowRange').innerText = `Rs. ${data.range_low.toLocaleString()}`;

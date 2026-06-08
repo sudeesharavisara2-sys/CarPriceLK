@@ -59,12 +59,18 @@ def normalize_make(make: str) -> str:
 
 
 def normalize_model(model: str, make: str) -> str:
-    """Normalize model name"""
-    model_lower = str(model).lower().strip()
+    """Normalize model name and fix custom variations for ML Engine"""
+    raw_model = str(model).strip()
+    
+    # 🏍️ විශේෂ අවස්ථාව: Bajaj CT 100 සඳහා ML Model එක බලාපොරොත්තු වන්නේ "Ct-100" වේ.
+    # User ct100, ct 100 හෝ ct-100 කුමක් ටයිප් කළත් එය "Ct-100" බවට පරිවර්තනය කරයි.
+    model_clean = raw_model.lower().replace('-', ' ').replace('_', ' ')
+    if make == 'Bajaj' and "ct" in model_clean and "100" in model_clean:
+        return "Ct-100"
+        
     model_mapping = {
-        'ct 100': 'CT 100', 'ct100': 'CT 100', 'pulsar': 'Pulsar',
-        'discover': 'Discover', 'platina': 'Platina', 'alto': 'Alto',
-        'wagonr': 'WagonR', 'wagon r': 'WagonR', 'vezel': 'Vezel',
+        'pulsar': 'Pulsar', 'discover': 'Discover', 'platina': 'Platina', 
+        'alto': 'Alto', 'wagonr': 'WagonR', 'wagon r': 'WagonR', 'vezel': 'Vezel',
         'prius': 'Prius', 'vitz': 'Vitz', 'corolla': 'Corolla',
         'camry': 'Camry', 'hilux': 'Hilux', 'hiace': 'Hiace',
         'caravan': 'Caravan', 'march': 'March', 'sunny': 'Sunny',
@@ -74,9 +80,17 @@ def normalize_model(model: str, make: str) -> str:
         'ace': 'Ace', 'super ace': 'Super Ace', 'elf': 'Elf',
         'maxximo': 'Maxximo', 'pleasure': 'Pleasure', 'hf deluxe': 'HF Deluxe'
     }
+    
+    model_lower = raw_model.lower()
+    model_no_spaces = model_lower.replace(" ", "").replace("-", "").replace("_", "")
+    
     if model_lower in model_mapping:
         return model_mapping[model_lower]
-    return model_lower.title()
+    elif model_no_spaces in model_mapping:
+        return model_mapping[model_no_spaces]
+        
+    # කිසිදු mapping එකකට අසු නොවුනහොත් මුල් අගය Title Case කර යවයි
+    return raw_model.title()
 
 
 @app.route("/ui")
@@ -84,7 +98,7 @@ def ui_dashboard():
     return render_template("index.html")
 
 
-# 🔍 🚀 අලුතින්ම එකතු කරන ලද Real-time Auto-Suggestions Endpoint එක
+# 🔍 🚀 Real-time Auto-Suggestions Endpoint එක
 @app.route("/get_suggestions", methods=["GET"])
 def get_suggestions():
     raw_make = request.args.get("make", "").strip()
