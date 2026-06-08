@@ -1,411 +1,345 @@
 <!DOCTYPE html>
-<html lang="si">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CarPriceLK — Vehicle Price Estimator</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f5f5f5;
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 2rem 1rem;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 520px;
-    }
-
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .header h1 {
-      font-size: 22px;
-      font-weight: 600;
-      color: #111;
-      letter-spacing: -0.5px;
-    }
-    .header p {
-      font-size: 13px;
-      color: #888;
-      margin-top: 4px;
-    }
-
-    /* ── Card ── */
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-
-    /* ── Form ── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group label {
-      font-size: 12px;
-      font-weight: 500;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    select, input[type="number"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #111;
-      background: #fafafa;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    select:focus, input:focus {
-      border-color: #1D9E75;
-      background: #fff;
-    }
-
-    .slider-group {
-      margin-bottom: 12px;
-    }
-    .slider-label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    .slider-label span:first-child {
-      font-size: 12px;
-      font-weight: 500;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .slider-label span:last-child {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111;
-    }
-    input[type="range"] {
-      width: 100%;
-      accent-color: #1D9E75;
-      height: 4px;
-    }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 1.2rem;
-      cursor: pointer;
-    }
-    .checkbox-row input { width: 16px; height: 16px; accent-color: #1D9E75; cursor: pointer; }
-    .checkbox-row span { font-size: 14px; color: #333; }
-
-    button.predict-btn {
-      width: 100%;
-      padding: 13px;
-      background: #1D9E75;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-    }
-    button.predict-btn:hover  { background: #178c65; }
-    button.predict-btn:active { transform: scale(0.99); }
-    button.predict-btn:disabled { background: #aaa; cursor: not-allowed; }
-
-    /* ── Result ── */
-    #result { margin-top: 1rem; }
-
-    .result-card {
-      background: #f0faf5;
-      border: 1px solid #b3e6d0;
-      border-radius: 12px;
-      padding: 1.25rem;
-    }
-    .result-label {
-      font-size: 12px;
-      color: #4a9e7a;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 4px;
-    }
-    .result-price {
-      font-size: 32px;
-      font-weight: 700;
-      color: #0F6E56;
-      letter-spacing: -1px;
-    }
-    .result-range {
-      font-size: 13px;
-      color: #5a9e80;
-      margin-top: 3px;
-    }
-    .verdict-badge {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 4px 14px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .verdict-fair   { background: #d1fae5; color: #065f46; }
-    .verdict-high   { background: #fef3c7; color: #92400e; }
-    .verdict-low    { background: #dbeafe; color: #1e40af; }
-
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .detail-item {
-      background: #fff;
-      border-radius: 8px;
-      padding: 10px 12px;
-    }
-    .detail-item .d-label { font-size: 11px; color: #888; margin-bottom: 2px; }
-    .detail-item .d-val   { font-size: 14px; font-weight: 600; color: #111; }
-
-    .factors {
-      margin-top: 12px;
-      padding: 10px 14px;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 13px;
-      color: #555;
-      line-height: 1.5;
-    }
-
-    .error-card {
-      background: #fff5f5;
-      border: 1px solid #fecaca;
-      border-radius: 12px;
-      padding: 1rem;
-      color: #b91c1c;
-      font-size: 14px;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 1.5rem;
-      color: #888;
-      font-size: 14px;
-    }
-    .dot-loader span {
-      display: inline-block;
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: #1D9E75;
-      margin: 0 2px;
-      animation: bounce 1.2s ease-in-out infinite;
-    }
-    .dot-loader span:nth-child(2) { animation-delay: .2s; }
-    .dot-loader span:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
-
-    .accuracy-note {
-      text-align: center;
-      font-size: 11px;
-      color: #bbb;
-      margin-top: 0.75rem;
-    }
-
-    @media (max-width: 420px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .detail-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarPriceLK — Vehicle Price Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-<div class="container">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-  <div class="header">
-    <h1>🚗 CarPriceLK</h1>
-    <p>Sri Lanka vehicle market value estimator</p>
-  </div>
-
-  <div class="card">
-
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Make</label>
-        <select id="make" onchange="updateModels()">
-          <option value="">-- select --</option>
-          <option>Toyota</option>
-          <option>Suzuki</option>
-          <option>Honda</option>
-          <option>Nissan</option>
-          <option>Mitsubishi</option>
-          <option>Hyundai</option>
-          <option>Perodua</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Model</label>
-        <select id="model">
-          <option value="">-- select make --</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="slider-group">
-      <div class="slider-label">
-        <span>Year</span>
-        <span id="year-val">2015</span>
-      </div>
-      <input type="range" id="year" min="2003" max="2024" value="2015" step="1"
-        oninput="document.getElementById('year-val').textContent=this.value">
-    </div>
-
-    <div class="slider-group">
-      <div class="slider-label">
-        <span>Mileage</span>
-        <span id="mil-val">80,000 km</span>
-      </div>
-      <input type="range" id="mileage" min="5000" max="250000" value="80000" step="1000"
-        oninput="document.getElementById('mil-val').textContent=Number(this.value).toLocaleString()+' km'">
-    </div>
-
-    <label class="checkbox-row">
-      <input type="checkbox" id="colombo">
-      <span>Colombo district</span>
-    </label>
-
-    <button class="predict-btn" onclick="predict()">Get market value</button>
-
-    <div id="result"></div>
-    <p class="accuracy-note">Trained on 1,571 riyasewana.com listings · R² 0.958 · ±Rs.392,640 avg error</p>
-  </div>
-
-</div>
-
-<script>
-const MODELS = {
-  Toyota:['Allion','Axio','Camry','Corolla','Hilux','Premio','Prius','Rav4','Vit'],
-  Suzuki:['Alto','Swift','WagonR'],
-  Honda:['Crv','Fit','Grace','Vezel'],
-  Nissan:['March','Sunny','Xtrail'],
-  Mitsubishi:['Lancer'],
-  Hyundai:['Elantra'],
-  Perodua:['Axia','Bezza'],
-};
-
-const MODEL_DISPLAY = {
-  'Vit':'Vitz','Crv':'CR-V','Rav4':'RAV4','Xtrail':'X-Trail',
-};
-
-function updateModels() {
-  const make = document.getElementById('make').value;
-  const sel  = document.getElementById('model');
-  if (!make) {
-    sel.innerHTML = '<option value="">-- select make --</option>';
-    return;
-  }
-  sel.innerHTML = MODELS[make]
-    .map(m => `<option value="${m.toLowerCase()}">${MODEL_DISPLAY[m]||m}</option>`)
-    .join('');
-}
-
-function fmt(n) {
-  return 'Rs. ' + Math.round(n / 1000) * 1000;
-}
-
-async function predict() {
-  const make      = document.getElementById('make').value;
-  const model     = document.getElementById('model').value;
-  const year      = parseInt(document.getElementById('year').value);
-  const mileage   = parseInt(document.getElementById('mileage').value);
-  const is_colombo = document.getElementById('colombo').checked;
-  const btn       = document.querySelector('.predict-btn');
-  const out       = document.getElementById('result');
-
-  if (!make || !model) {
-    out.innerHTML = '<div class="error-card">Make සහ Model select කරන්න.</div>';
-    return;
-  }
-
-  btn.disabled = true;
-  out.innerHTML = `<div class="loading"><div class="dot-loader"><span></span><span></span><span></span></div><p style="margin-top:8px">Calculating...</p></div>`;
-
-  try {
-    const res = await fetch('http://localhost:5000/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ make, model, year, mileage, is_colombo }),
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-      out.innerHTML = `<div class="error-card">Error: ${data.error}</div>`;
-      return;
-    }
-
-    const verdictClass =
-      data.verdict.includes('over') || data.verdict.includes('High') ? 'verdict-high' :
-      data.verdict.includes('deal') || data.verdict.includes('Low')  ? 'verdict-low'  :
-      'verdict-fair';
-
-    out.innerHTML = `
-      <div class="result-card">
-        <div class="result-label">Estimated market value</div>
-        <div class="result-price">${fmt(data.predicted_price)}</div>
-        <div class="result-range">Range: ${fmt(data.range_low)} – ${fmt(data.range_high)}</div>
-        <span class="verdict-badge ${verdictClass}">${data.verdict}</span>
-
-        <div class="detail-grid">
-          <div class="detail-item">
-            <div class="d-label">Car age</div>
-            <div class="d-val">${2026 - data.year} years</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Mileage</div>
-            <div class="d-val">${data.mileage_km.toLocaleString()} km</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Location</div>
-            <div class="d-val">${data.location}</div>
-          </div>
-          <div class="detail-item">
-            <div class="d-label">Model R²</div>
-            <div class="d-val">${data.model_r2}</div>
-          </div>
+    <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-car-side text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">CarPriceLK</h1>
+                    <p class="text-xs text-slate-400">Sri Lankan Market Valuator (2026 Engine)</p>
+                </div>
+            </div>
+            <div class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ML Model Operational
+            </div>
         </div>
-      </div>`;
+    </header>
 
-  } catch (e) {
-    out.innerHTML = `<div class="error-card">
-      <strong>Connection failed.</strong><br>
-      Flask server run වෙනවද? Terminal ඇතුළේ:<br>
-      <code style="background:#fee;padding:4px 8px;border-radius:4px;margin-top:6px;display:inline-block;">python app.py</code>
-    </div>`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-</script>
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <section class="lg:col-span-5 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-blue-400 text-sm"></i> Vehicle Specifications
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">Provide data points matching current localized market listings.</p>
+            </div>
+
+            <form id="predictionForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Vehicle Category</label>
+                    <div class="relative">
+                        <select id="vehicle_type" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="Car">🚗 Car</option>
+                            <option value="Van">🚐 Van</option>
+                            <option value="Bus">🚌 Bus</option>
+                            <option value="SUV">🚙 SUV / Jeep</option>
+                            <option value="Lorry">🚛 Lorry</option>
+                            <option value="Motorcycle">🏍️ Motorcycle</option>
+                            <option value="ThreeWheel">🛺 Three-Wheeler</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Brand / Make</label>
+                        <div class="relative">
+                            <select id="make" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                                <option value="" disabled selected>Select Brand</option>
+                                <option value="Ashok Leyland">Ashok Leyland</option>
+                                <option value="Bajaj">Bajaj</option>
+                                <option value="Daihatsu">Daihatsu</option>
+                                <option value="Hero">Hero</option>
+                                <option value="Honda">Honda</option>
+                                <option value="Hyundai">Hyundai</option>
+                                <option value="Isuzu">Isuzu</option>
+                                <option value="Mahindra">Mahindra</option>
+                                <option value="Mitsubishi">Mitsubishi</option>
+                                <option value="Nissan">Nissan</option>
+                                <option value="Nissanette">Nissanette</option>
+                                <option value="Nissaniyer">Nissaniyer</option>
+                                <option value="Perodua">Perodua</option>
+                                <option value="Suzuki">Suzuki</option>
+                                <option value="TVS">TVS</option>
+                                <option value="Tata">Tata</option>
+                                <option value="Toyota">Toyota</option>
+                                <option value="Yamaha">Yamaha</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Model Name</label>
+                        <input type="text" id="model_name" list="suggestions_list" placeholder="e.g. prius" autocomplete="off" required
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500">
+                        
+                        <datalist id="suggestions_list"></datalist>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Manufacture Year</label>
+                        <input type="number" id="year" placeholder="2015" min="1990" max="2026" required
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Mileage (km)</label>
+                        <input type="number" id="mileage" placeholder="85000" min="1" required
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Fuel Configuration</label>
+                        <div class="relative">
+                            <select id="fuel_type" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                                <option value="petrol">Petrol</option>
+                                <option value="diesel">Diesel</option>
+                                <option value="hybrid">Hybrid</option>
+                                <option value="electric">Electric</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Transmission</label>
+                        <div class="relative">
+                            <select id="transmission" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                                <option value="automatic">Automatic</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm py-3 rounded-xl transition duration-200 shadow-lg shadow-blue-900/30 active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-microchip"></i> Calculate Fair Market Price
+                </button>
+            </form>
+        </section>
+
+        <section class="lg:col-span-7 flex flex-col justify-between space-y-6">
+            
+            <div id="resultPlaceholder" class="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-950/20 border border-dashed border-slate-800 rounded-2xl">
+                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-slate-600 mb-4 border border-slate-800">
+                    <i class="fa-solid fa-chart-line text-2xl"></i>
+                </div>
+                <h3 class="text-base font-medium text-slate-300">Awaiting Specifications Input</h3>
+                <p class="text-xs text-slate-500 max-w-xs mt-1">Fill out the left form to trigger multi-tree random forest valuation evaluations mapping platform data patterns.</p>
+            </div>
+
+            <div id="resultLoader" class="hidden flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-950/20 border border-slate-800 rounded-2xl">
+                <div class="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+                <p class="text-xs text-slate-400">Processing input parameters across ensemble trees...</p>
+            </div>
+
+            <div id="resultContent" class="hidden flex-1 bg-slate-950/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex justify-between items-start border-b border-slate-800 pb-4">
+                    <div>
+                        <span id="resVehicleType" class="text-[10px] uppercase font-bold tracking-widest text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md">CAR</span>
+                        <h3 id="resTitle" class="text-2xl font-bold text-white mt-2">Toyota Prius</h3>
+                        <p id="resSub" class="text-xs text-slate-400 mt-1">85,000 km | Petrol | Automatic</p>
+                    </div>
+                    <div id="resVerdictBadge" class="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300">
+                        Mid Market
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-xl border border-slate-800/80 text-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-3 opacity-5 text-6xl text-blue-400 pointer-events-none">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <span class="text-xs text-slate-400 uppercase font-semibold tracking-wider block mb-1">Estimated Fair Market Value</span>
+                    <div class="text-4xl font-extrabold text-white flex items-baseline justify-center gap-1.5">
+                        <span class="text-xl text-slate-500 font-medium">Rs.</span>
+                        <span id="resPrice" class="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">0</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between text-xs text-slate-400 font-medium">
+                        <span>15th Percentile Floor</span>
+                        <span>85th Percentile Ceiling</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full relative overflow-hidden border border-slate-800">
+                        <div class="absolute left-[15%] right-[15%] top-0 h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"></div>
+                    </div>
+                    <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs">
+                        <div class="text-left">
+                            <span class="text-[10px] text-slate-500 block uppercase">Low Target Range</span>
+                            <span id="resLowRange" class="font-bold text-slate-300">Rs. 0</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-500 block uppercase">High Target Range</span>
+                            <span id="resHighRange" class="font-bold text-slate-300">Rs. 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 grid grid-cols-2 gap-4 text-xs">
+                <div class="flex items-start gap-3">
+                    <div class="text-indigo-400 mt-0.5"><i class="fa-solid fa-bullseye text-base"></i></div>
+                    <div>
+                        <span class="text-slate-500 block">R² Prediction Accuracy</span>
+                        <span id="metaR2" class="font-semibold text-slate-300">Loading...</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="text-amber-400 mt-0.5"><i class="fa-solid fa-triangle-exclamation text-base"></i></div>
+                    <div>
+                        <span class="text-slate-500 block">Mean Absolute Error</span>
+                        <span id="metaMae" class="font-semibold text-slate-300">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:5000";
+
+        // 🔍 Auto-Suggestion Logic dynamically querying the updated app.py database route
+        const makeInput = document.getElementById('make');
+        const modelInput = document.getElementById('model_name');
+        const datalist = document.getElementById('suggestions_list');
+
+        modelInput.addEventListener('input', async function() {
+            const selectedMake = makeInput.value;
+            const currentQuery = this.value.trim();
+
+            // Brand එක තෝරාගෙන ඇති විට සහ අවම වශයෙන් අකුරු 1ක් වත් ටයිප් කර ඇති විට SQL Query එක යවයි
+            if (selectedMake && currentQuery.length >= 1) {
+                try {
+                    const response = await fetch(`${API_BASE}/get_suggestions?make=${encodeURIComponent(selectedMake)}&query=${encodeURIComponent(currentQuery)}`);
+                    const suggestions = await response.json();
+                    
+                    // පරණ Suggestions ලිස්ට් එක හිස් කිරීම
+                    datalist.innerHTML = '';
+                    
+                    // ලැබුණු නව ලැයිස්තුව ලූප් එකක් මඟින් datalist එකට එකතු කිරීම
+                    suggestions.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        datalist.appendChild(option);
+                    });
+                } catch (err) {
+                    console.error("Failed to sync database live model suggestions payload:", err);
+                }
+            }
+        });
+
+        // Brand එක මාරු කලහොත් කලින් තිබූ Suggestions සහ ටයිප් කල Model එක හිස් කරයි
+        makeInput.addEventListener('change', function() {
+            modelInput.value = '';
+            datalist.innerHTML = '';
+        });
+
+        async function fetchModelMetadata() {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.json();
+                
+                if (data.accuracy && data.mae_lkr) {
+                    document.getElementById('metaR2').innerText = data.accuracy.replace('R²', '').trim();
+                    document.getElementById('metaMae').innerText = `± Rs. ${parseInt(data.mae_lkr).toLocaleString()}`;
+                }
+            } catch (err) {
+                console.warn("Could not pre-fetch metadata metrics payload summary:", err);
+                document.getElementById('metaR2').innerText = "Unavailable";
+                document.getElementById('metaMae').innerText = "Unavailable";
+            }
+        }
+        
+        fetchModelMetadata();
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const placeholder = document.getElementById('resultPlaceholder');
+            const loader = document.getElementById('resultLoader');
+            const content = document.getElementById('resultContent');
+
+            placeholder.classList.add('hidden');
+            loader.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            const payload = {
+                make: document.getElementById('make').value, 
+                model_name: document.getElementById('model_name').value.trim(),
+                vehicle_type: document.getElementById('vehicle_type').value,
+                year: parseInt(document.getElementById('year').value),
+                mileage: parseInt(document.getElementById('mileage').value),
+                fuel_type: document.getElementById('fuel_type').value,
+                transmission: document.getElementById('transmission').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(`Inference Engine Error: ${data.error}`);
+                    loader.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                    return;
+                }
+
+                document.getElementById('resVehicleType').innerText = data.vehicle_type || "VEHICLE";
+                document.getElementById('resTitle').innerText = `${data.make} ${data.model} (${data.year})`;
+                
+                const displayKm = data.mileage_km ? data.mileage_km.toLocaleString() : payload.mileage.toLocaleString();
+                document.getElementById('resSub').innerText = `${displayKm} km  |  data.fuel_type  |  ${data.transmission}`;
+                
+                document.getElementById('resPrice').innerText = data.predicted_price.toLocaleString();
+                document.getElementById('resLowRange').innerText = `Rs. ${data.range_low.toLocaleString()}`;
+                document.getElementById('resHighRange').innerText = `Rs. ${data.range_high.toLocaleString()}`;
+                
+                const verdictBadge = document.getElementById('resVerdictBadge');
+                const finalVerdict = data.verdict || "Mid Market";
+                verdictBadge.innerText = finalVerdict;
+                verdictBadge.className = "px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider ";
+                
+                if (finalVerdict.includes("Low")) {
+                    verdictBadge.className += "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                } else if (finalVerdict.includes("High")) {
+                    verdictBadge.className += "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                } else {
+                    verdictBadge.className += "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                }
+
+                loader.classList.add('hidden');
+                content.classList.remove('hidden');
+
+            } catch (err) {
+                console.error("Network Fetch Request Aborted: ", err);
+                alert("Failed to communicate with the Python ML Prediction server backend. Ensure app.py is fully operational.");
+                loader.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+        });
+    </script>
 </body>
 </html>

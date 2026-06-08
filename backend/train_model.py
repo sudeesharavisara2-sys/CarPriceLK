@@ -1,6 +1,6 @@
 """
 train_model.py
-CarPriceLK — ML Model Trainer
+CarPriceLK — ML Model Trainer (Updated with Make & Model from Title)
 
 Loads scraped riyasewana JSON files, cleans data,
 trains a RandomForest price prediction model, and saves it.
@@ -46,21 +46,14 @@ def load_all_data(data_dir="."):
 # 2. CLEAN & ENGINEER FEATURES
 # ─────────────────────────────────────────────
 
-COLOMBO_AREA = {
-    "colombo", "nugegoda", "dehiwala", "maharagama", "kotte",
-    "rajagiriya", "battaramulla", "kelaniya", "malabe", "kaduwela",
-    "athurugiriya", "hokandara", "boralesgamuwa", "moratuwa",
-    "dehiwala-mt", "mount lavinia", "ratmalana", "wellampitiya",
-}
-
 def clean_data(records):
     df = pd.DataFrame(records)
 
     # Drop rows with no valid price
     df = df[df["cleaned_price"] > 500_000].copy()
 
-    # Remove extreme outliers (price > 30M or < 1M likely junk)
-    df = df[(df["cleaned_price"] >= 1_000_000) & (df["cleaned_price"] <= 30_000_000)]
+    # Remove extreme outliers
+    df = df[(df["cleaned_price"] >= 500_000) & (df["cleaned_price"] <= 40_000_000)]
 
     # Year → numeric, drop N/A
     df = df[df["year"] != "N/A"]
@@ -68,10 +61,10 @@ def clean_data(records):
     df = df.dropna(subset=["year"])
     df["year"] = df["year"].astype(int)
 
-    # Keep only reasonable years (1990–2026)
+    # Keep only reasonable years
     df = df[(df["year"] >= 1990) & (df["year"] <= 2026)]
 
-    # Mileage: 0 means unknown — replace with median per category
+    # Mileage: 0 means unknown — replace with median
     df["mileage"] = df["mileage"].replace(0, np.nan)
     df["mileage"] = df.groupby("category")["mileage"].transform(
         lambda x: x.fillna(x.median())
@@ -81,19 +74,41 @@ def clean_data(records):
     # Car age feature
     df["car_age"] = 2026 - df["year"]
 
-    # Location: is it Colombo area?
-    df["is_colombo"] = df["location"].str.lower().apply(
-        lambda loc: 1 if any(area in loc for area in COLOMBO_AREA) else 0
-    )
+    # Fuel type
+    df["fuel_type"] = df["fuel_type"].fillna("unknown")
+    df["fuel_type"] = df["fuel_type"].replace(["unknown", ""], "petrol")
+    
+    # Transmission
+    df["transmission"] = df["transmission"].fillna("unknown")
+    df["transmission"] = df["transmission"].replace(["unknown", ""], "automatic")
 
-    # Extract make and model from category  (e.g. "Toyota_Prius" → "toyota", "prius")
-    df["make"] = df["category"].str.split("_").str[0].str.lower()
-    df["model"] = df["category"].str.split("_").str[1].str.lower()
+    # Make and Model from title (new fields)
+    if "make" in df.columns:
+        df["make"] = df["make"].fillna("unknown")
+        df["make"] = df["make"].replace(["unknown", ""], "other")
+    else:
+        # Fallback: extract from category
+        df["make"] = df["category"].str.split("_").str[0].str.lower()
+    
+    if "model" in df.columns:
+        df["model"] = df["model"].fillna("unknown")
+        df["model"] = df["model"].replace(["unknown", ""], "other")
+    else:
+        df["model"] = df["category"].str.split("_").str[1].str.lower()
+
+    # Vehicle type
+    if "vehicle_type" in df.columns:
+        df["vehicle_type"] = df["vehicle_type"].fillna("Car")
+    else:
+        df["vehicle_type"] = "Car"
 
     print(f"After cleaning: {len(df)} usable records")
     print(f"  Price range: Rs.{df['cleaned_price'].min():,.0f} – Rs.{df['cleaned_price'].max():,.0f}")
     print(f"  Year range:  {df['year'].min()} – {df['year'].max()}")
-    print(f"  Makes: {sorted(df['make'].unique())}")
+    print(f"  Makes: {sorted(df['make'].unique())[:20]}...")
+    print(f"  Fuel types: {sorted(df['fuel_type'].unique())}")
+    print(f"  Transmissions: {sorted(df['transmission'].unique())}")
+    print(f"  Vehicle types: {sorted(df['vehicle_type'].unique())}")
 
     return df
 
@@ -103,18 +118,28 @@ def clean_data(records):
 # ─────────────────────────────────────────────
 
 def encode_features(df):
-    le_make  = LabelEncoder()
-    le_model = LabelEncoder()
+    le_make       = LabelEncoder()
+    le_model      = LabelEncoder()
+    le_fuel       = LabelEncoder()
+    le_trans      = LabelEncoder()
+    le_vehicle_type = LabelEncoder()
 
     df = df.copy()
-    df["make_enc"]  = le_make.fit_transform(df["make"])
-    df["model_enc"] = le_model.fit_transform(df["model"])
+    df["make_enc"]        = le_make.fit_transform(df["make"])
+    df["model_enc"]       = le_model.fit_transform(df["model"])
+    df["fuel_enc"]        = le_fuel.fit_transform(df["fuel_type"])
+    df["trans_enc"]       = le_trans.fit_transform(df["transmission"])
+    df["vehicle_type_enc"] = le_vehicle_type.fit_transform(df["vehicle_type"])
 
-    features = ["make_enc", "model_enc", "year", "car_age", "mileage", "is_colombo"]
+    # Features
+    features = [
+        "make_enc", "model_enc", "vehicle_type_enc",
+        "fuel_enc", "trans_enc", "year", "car_age", "mileage"
+    ]
     X = df[features]
     y = df["cleaned_price"]
 
-    return X, y, le_make, le_model, features
+    return X, y, le_make, le_model, le_fuel, le_trans, le_vehicle_type, features
 
 
 # ─────────────────────────────────────────────
@@ -148,7 +173,7 @@ def train(X, y):
     print("\nFeature importance:")
     for feat, imp in sorted(zip(X.columns, model.feature_importances_), key=lambda x: -x[1]):
         bar = "█" * int(imp * 40)
-        print(f"  {feat:<15} {bar} {imp:.3f}")
+        print(f"  {feat:<18} {bar} {imp:.3f}")
 
     return model, mae, r2
 
@@ -157,12 +182,16 @@ def train(X, y):
 # 5. SAVE MODEL ARTIFACTS
 # ─────────────────────────────────────────────
 
-def save_model(model, le_make, le_model, features, mae, r2, output_dir="."):
+def save_model(model, le_make, le_model, le_fuel, le_trans, le_vehicle_type, 
+               features, mae, r2, output_dir="model"):
     os.makedirs(output_dir, exist_ok=True)
 
-    joblib.dump(model,    os.path.join(output_dir, "price_model.pkl"))
-    joblib.dump(le_make,  os.path.join(output_dir, "encoder_make.pkl"))
-    joblib.dump(le_model, os.path.join(output_dir, "encoder_model.pkl"))
+    joblib.dump(model,           os.path.join(output_dir, "price_model.pkl"))
+    joblib.dump(le_make,         os.path.join(output_dir, "encoder_make.pkl"))
+    joblib.dump(le_model,        os.path.join(output_dir, "encoder_model.pkl"))
+    joblib.dump(le_fuel,         os.path.join(output_dir, "encoder_fuel.pkl"))
+    joblib.dump(le_trans,        os.path.join(output_dir, "encoder_transmission.pkl"))
+    joblib.dump(le_vehicle_type, os.path.join(output_dir, "encoder_vehicle_type.pkl"))
 
     meta = {
         "features": features,
@@ -170,52 +199,80 @@ def save_model(model, le_make, le_model, features, mae, r2, output_dir="."):
         "r2_score": round(r2, 4),
         "makes":    list(le_make.classes_),
         "models":   list(le_model.classes_),
-        "trained_on": "2026-06-06",
+        "fuel_types": list(le_fuel.classes_),
+        "transmissions": list(le_trans.classes_),
+        "vehicle_types": list(le_vehicle_type.classes_),
+        "trained_on": "2026-06-07",
     }
     with open(os.path.join(output_dir, "model_meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
 
     print(f"\nSaved to '{output_dir}/':")
-    print("  price_model.pkl   — trained RandomForest")
-    print("  encoder_make.pkl  — make label encoder")
-    print("  encoder_model.pkl — model label encoder")
-    print("  model_meta.json   — metadata + accuracy info")
+    print("  price_model.pkl           — trained RandomForest")
+    print("  encoder_make.pkl          — make label encoder")
+    print("  encoder_model.pkl         — model label encoder")
+    print("  encoder_fuel.pkl          — fuel type encoder")
+    print("  encoder_transmission.pkl  — transmission encoder")
+    print("  encoder_vehicle_type.pkl  — vehicle type encoder")
+    print("  model_meta.json           — metadata + accuracy info")
 
 
 # ─────────────────────────────────────────────
 # 6. QUICK TEST PREDICTION
 # ─────────────────────────────────────────────
 
-def test_prediction(model, le_make, le_model, features):
+def test_prediction(model, le_make, le_model, le_fuel, le_trans, le_vehicle_type, features):
     print("\n--- Quick prediction tests ---")
 
     test_cases = [
-        {"make": "toyota", "model": "prius",  "year": 2014, "mileage": 150000, "is_colombo": 1},
-        {"make": "suzuki", "model": "alto",   "year": 2019, "mileage": 40000,  "is_colombo": 0},
-        {"make": "honda",  "model": "vezel",  "year": 2016, "mileage": 80000,  "is_colombo": 1},
-        {"make": "toyota", "model": "vit",    "year": 2013, "mileage": 100000, "is_colombo": 0},
+        {"make": "toyota", "model": "prius",  "year": 2014, "mileage": 150000, 
+         "fuel": "petrol", "transmission": "automatic", "vehicle_type": "Car"},
+        {"make": "suzuki", "model": "alto",   "year": 2019, "mileage": 40000,  
+         "fuel": "petrol", "transmission": "manual", "vehicle_type": "Car"},
+        {"make": "honda",  "model": "vezel",  "year": 2016, "mileage": 80000,  
+         "fuel": "petrol", "transmission": "automatic", "vehicle_type": "Car"},
+        {"make": "ashok leyland", "model": "viking", "year": 2015, "mileage": 120000, 
+         "fuel": "diesel", "transmission": "manual", "vehicle_type": "Bus"},
+        {"make": "toyota", "model": "hiace",  "year": 2018, "mileage": 100000,
+         "fuel": "diesel", "transmission": "manual", "vehicle_type": "Van"},
+        {"make": "bajaj",  "model": "pulsar", "year": 2019, "mileage": 30000,
+         "fuel": "petrol", "transmission": "manual", "vehicle_type": "Motorcycle"},
     ]
 
     for tc in test_cases:
         try:
-            make_enc  = le_make.transform([tc["make"]])[0]
-            model_enc = le_model.transform([tc["model"]])[0]
-            car_age   = 2026 - tc["year"]
+            # Check if make exists in encoder
+            if tc["make"] not in le_make.classes_:
+                print(f"  ⚠️ Make '{tc['make']}' not in training data, skipping...")
+                continue
+            
+            if tc["model"] not in le_model.classes_:
+                print(f"  ⚠️ Model '{tc['model']}' not in training data, skipping...")
+                continue
+            
+            make_enc        = le_make.transform([tc["make"]])[0]
+            model_enc       = le_model.transform([tc["model"]])[0]
+            fuel_enc        = le_fuel.transform([tc["fuel"]])[0]
+            trans_enc       = le_trans.transform([tc["transmission"]])[0]
+            vehicle_type_enc = le_vehicle_type.transform([tc["vehicle_type"]])[0]
+            car_age         = 2026 - tc["year"]
 
             row = pd.DataFrame([{
-                "make_enc":   make_enc,
-                "model_enc":  model_enc,
-                "year":       tc["year"],
-                "car_age":    car_age,
-                "mileage":    tc["mileage"],
-                "is_colombo": tc["is_colombo"],
+                "make_enc":        make_enc,
+                "model_enc":       model_enc,
+                "vehicle_type_enc": vehicle_type_enc,
+                "fuel_enc":        fuel_enc,
+                "trans_enc":       trans_enc,
+                "year":            tc["year"],
+                "car_age":         car_age,
+                "mileage":         tc["mileage"],
             }])[features]
 
             predicted = model.predict(row)[0]
-            print(f"  {tc['make'].capitalize()} {tc['model'].capitalize()} {tc['year']} "
+            print(f"  ✅ {tc['vehicle_type']}: {tc['make'].title()} {tc['model'].title()} {tc['year']} "
                   f"({tc['mileage']:,} km) → Rs. {predicted:,.0f}")
         except Exception as e:
-            print(f"  Skipped {tc}: {e}")
+            print(f"  ❌ Skipped {tc}: {e}")
 
 
 # ─────────────────────────────────────────────
@@ -225,14 +282,16 @@ def test_prediction(model, le_make, le_model, features):
 if __name__ == "__main__":
     print("=" * 55)
     print("  CarPriceLK — ML Model Trainer")
+    print("  (Updated: Make & Model from Title Parser)")
     print("=" * 55)
 
     records          = load_all_data(data_dir=".")
     df               = clean_data(records)
-    X, y, le_make, le_model, features = encode_features(df)
+    X, y, le_make, le_model, le_fuel, le_trans, le_vehicle_type, features = encode_features(df)
     model, mae, r2   = train(X, y)
 
-    save_model(model, le_make, le_model, features, mae, r2, output_dir="model")
-    test_prediction(model, le_make, le_model, features)
+    save_model(model, le_make, le_model, le_fuel, le_trans, le_vehicle_type, 
+               features, mae, r2, output_dir="model")
+    test_prediction(model, le_make, le_model, le_fuel, le_trans, le_vehicle_type, features)
 
-    print("\nDone. Next step: predict.py or FastAPI endpoint.")
+    print("\nDone. Next step: python app.py")

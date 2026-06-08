@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-06-06T13:10:26.217027",
+  "last_updated": "2026-06-07T09:17:39.573543",
   "completed_categories": [
     "Suzuki_Alto",
     "Toyota_Camry",
@@ -19,6 +19,19 @@
     "Hyundai_Elantra",
     "Hyundai_Grand_i10",
     "Perodua_Axia",
-    "Perodua_Bezza"
+    "Perodua_Bezza",
+    "Toyota_Prius",
+    "Toyota_Vitz",
+    "Toyota_Corolla",
+    "Toyota_Axio",
+    "Toyota_Hiace_Van",
+    "Nissan_Caravan_Van",
+    "Suzuki_Every_Van",
+    "Mitsubishi_Delica_Van",
+    "Lanka_Ashok_Bus",
+    "Toyota_Coaster_Bus",
+    "Nissan_Civilian_Bus",
+    "Mitsubishi_Rosa_Bus",
+    "Toyota_LandCruiser"
   ]
 }
